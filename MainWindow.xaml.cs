@@ -11,13 +11,34 @@ using System.Windows.Shapes;
 
 namespace MatchGame
 {
+    using System.Windows.Threading;
     public partial class MainWindow : Window 
     {
+        DispatcherTimer timer = new DispatcherTimer(); // Создание таймера.
+        int tenthsOfSecondsElapsed; // Прошло времени.
+        int matchesFound; // Найдено совпадений.
         public MainWindow() /* Специальный метод, который называется конструктором. Все его содержимое вызывается
                              *сразу же после запуска приложения. */
         {
             InitializeComponent();
+
+            // Таймеру необходимо сообщить с какой частотой он должен срабатывать, и какой метод должен вызываться.
+            timer.Interval = TimeSpan.FromSeconds(.1);
+            timer.Tick += Timer_Tick;
             SetUpGame();
+        }
+
+        /* Этот метод обновляет элемент TextBlock истекшим временем и останавливает таймер после того, как
+         * игрок найдет все совпадения */
+        private void Timer_Tick(object sender, EventArgs e)
+        {
+            tenthsOfSecondsElapsed++;
+            timeTextBlock.Text = (tenthsOfSecondsElapsed / 10F).ToString("0.0s");
+            if(matchesFound == 8)
+            {
+                timer.Stop();
+                timeTextBlock.Text = timeTextBlock.Text + " - Play again?";
+            }
         }
 
         //Метод настраивает элементы TextBlock так, чтобы в них выводились эмодзи с изображением животных.
@@ -36,16 +57,24 @@ namespace MatchGame
             //Находит каждый элемент TextBlock в сетке и повторяет перечисленные команды для этого элемента. 
             foreach (TextBlock textBlock in mainGrid.Children.OfType<TextBlock>()) 
             {
-                /* Генерирует случайное число от 0 до количества эмодзи
-                 * и присваивает его переменной index. */
-                int index = random.Next(animalEmoji.Count);
-                //Использует случайное число для получения одного из эмодзи.
-                string nextEmoji = animalEmoji[index];
-                //Обновляет элемент TextBlock полученным эмодзи.
-                textBlock.Text = nextEmoji;
-                //Удаляет случайный эмодзи из списка.
-                animalEmoji.RemoveAt(index);
+                if (textBlock.Name != "timeTextBlock")
+                {
+                    textBlock.Visibility = Visibility.Visible;
+                    /* Генерирует случайное число от 0 до количества эмодзи
+                     * и присваивает его переменной index. */
+                    int index = random.Next(animalEmoji.Count);
+                    //Использует случайное число для получения одного из эмодзи.
+                    string nextEmoji = animalEmoji[index];
+                    //Обновляет элемент TextBlock полученным эмодзи.
+                    textBlock.Text = nextEmoji;
+                    //Удаляет случайный эмодзи из списка.
+                    animalEmoji.RemoveAt(index);
+                }
             }
+            // Запустить таймер и сбросить содержимое полей.
+            timer.Start();
+            tenthsOfSecondsElapsed = 0;
+            matchesFound = 0;
         }
 
         /* Если щелчок сделан на первом животном в паре, сохранить информацию о том, на каком элементе
@@ -65,6 +94,7 @@ namespace MatchGame
             }
             else if (textBlock.Text == lastTextBlockClicked.Text)
             {
+                matchesFound++;
                 textBlock.Visibility = Visibility.Hidden;
                 findingMatch = false;
             }
@@ -72,6 +102,16 @@ namespace MatchGame
             {
                 lastTextBlockClicked.Visibility= Visibility.Visible;
                 findingMatch = false;
+            }
+        }
+
+        /* Сбрасывает игру, если были найдены все 8 пар, в противном случае ничего не делает так как
+         * игра еще продолжается */
+        private void timeTextBlock_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if(matchesFound == 8)
+            {
+                SetUpGame();
             }
         }
     }
